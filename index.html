@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>누구가 더 빠른가?</title>
+  <style>
+    body {
+      background-color: #222;
+      color: #fff;
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+    }
+
+    .container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    h1 {
+      font-size: 40px;
+      margin-bottom: 30px;
+      letter-spacing: 2px;
+    }
+
+    h2 {
+      font-size: 32px;
+      margin-bottom: 20px;
+    }
+
+    #timer {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+
+    #clickButton {
+      font-size: 18px;
+      padding: 10px 20px;
+      background-color: #FFD700;
+      color: #222;
+      border: none;
+      border-radius: 5px;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+      transition: background-color 0.3s ease;
+      cursor: pointer;
+    }
+
+    #clickButton:hover {
+      background-color: #FFC800;
+    }
+
+    .ranking {
+      margin-top: 40px;
+    }
+
+    .ranking h3 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .ranking-list {
+      list-style: none;
+      padding: 0;
+    }
+
+    .ranking-item {
+      font-size: 16px;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ranking-item span {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>누구가 더 빠른가?</h1>
+    <h2 id="timer">0.000 초</h2>
+    <button id="clickButton" disabled>클릭하세요!</button>
+    <button onclick="startGame()">시작</button>
+    <div class="ranking">
+      <h3>랭킹</h3>
+      <ol class="ranking-list" id="rankingList"></ol>
+    </div>
+  </div>
+
+  <script>
+    var startTime, endTime;
+    var rankingList = [];
+
+    updateRanking();
+
+    function startGame() {
+      var button = document.getElementById("clickButton");
+      button.disabled = false;
+      button.innerHTML = "클릭하세요!";
+      button.onclick = function() {
+        endGame();
+      };
+
+      startTime = new Date();
+    }
+
+    function endGame() {
+      endTime = new Date();
+      var timeDiff = endTime - startTime;
+      var seconds = timeDiff / 1000;
+      document.getElementById("timer").innerHTML = seconds.toFixed(3) + " 초";
+
+      var playerName = prompt("이름을 입력하세요:");
+      if (playerName) {
+        var rankingItem = {
+          name: playerName,
+          time: seconds.toFixed(3)
+        };
+        rankingList.push(rankingItem);
+        updateRanking();
+      }
+
+      var button = document.getElementById("clickButton");
+      button.disabled = true;
+      button.innerHTML = "클릭!";
+      button.onclick = null;
+    }
+
+    function updateRanking() {
+      var rankingListElement = document.getElementById("rankingList");
+      rankingListElement.innerHTML = "";
+
+      rankingList.sort(function(a, b) {
+        return a.time - b.time;
+      });
+
+      for (var i = 0; i < rankingList.length; i++) {
+        var rankingItem = rankingList[i];
+        var listItem = document.createElement("li");
+        listItem.className = "ranking-item";
+        listItem.innerHTML = '<span>' + rankingItem.name + '</span><span>' + rankingItem.time + ' 초</span>';
+        rankingListElement.appendChild(listItem);
+      }
+    }
+  </script>
+
+  <!-- 서버 측 코드 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      // 서버에서 랭킹 데이터 가져오기
+      $.ajax({
+        url: "/ranking",
+        type: "GET",
+        success: function(data) {
+          rankingList = data;
+          updateRanking();
+        },
+        error: function(error) {
+          console.error("랭킹 데이터를 가져오는 중 오류가 발생했습니다:", error);
+        }
+      });
+    });
+
+    function addRankingData() {
+      var playerName = prompt("이름을 입력하세요:");
+      if (playerName) {
+        var time = parseFloat(document.getElementById("timer").innerHTML);
+        var rankingItem = {
+          name: playerName,
+          time: time.toFixed(3)
+        };
+
+        // 서버에 랭킹 데이터 추가
+        $.ajax({
+          url: "/ranking",
+          type: "POST",
+          data: rankingItem,
+          success: function() {
+            rankingList.push(rankingItem);
+            updateRanking();
+          },
+          error: function(error) {
+            console.error("랭킹 데이터를 추가하는 중 오류가 발생했습니다:", error);
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>
